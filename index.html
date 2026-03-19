@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIRO GRAPH · graphing calculator · functions & visualization</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js for graphing -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #0b0a0f;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1.5rem;
+            position: relative;
+            color: #f2eaff;
+        }
+
+        /* halftone overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            background-image: 
+                radial-gradient(circle at 30% 40%, rgba(160, 120, 255, 0.08) 1px, transparent 1px),
+                radial-gradient(circle at 70% 85%, rgba(200, 140, 255, 0.08) 1px, transparent 1px),
+                radial-gradient(circle at 15% 90%, rgba(140, 100, 255, 0.06) 2px, transparent 2px),
+                radial-gradient(circle at 85% 20%, rgba(180, 130, 255, 0.06) 2px, transparent 2px);
+            background-size: 60px 60px, 90px 90px, 120px 120px, 150px 150px;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: radial-gradient(circle at 50% 50%, rgba(180, 130, 255, 0.15) 0px, transparent 3px);
+            background-size: 48px 48px;
+            opacity: 0.5;
+            z-index: 0;
+        }
+
+        .main-container {
+            position: relative;
+            z-index: 10;
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        /* header */
+        .hero {
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 12vw, 5.5rem);
+            font-weight: 700;
+            background: linear-gradient(145deg, #d4c0ff 0%, #b47aff 40%, #9f5eff 80%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.02em;
+            filter: drop-shadow(0 0 20px #ae7aff66);
+            display: inline-block;
+            padding: 0 0.5rem;
+        }
+
+        .hero h1 span {
+            font-size: 2rem;
+            background: linear-gradient(145deg, #b47aff, #8f4aff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-left: 0.5rem;
+        }
+
+        .halftone-underline {
+            height: 6px;
+            width: 300px;
+            max-width: 70%;
+            margin: 0.8rem auto 0;
+            background: linear-gradient(90deg, transparent, #c68eff, #a158ff, #c68eff, transparent);
+            border-radius: 6px;
+            position: relative;
+        }
+
+        .halftone-underline::after {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 0;
+            width: 100%;
+            height: 24px;
+            background: radial-gradient(circle at 20% 0%, #b47aff40 2px, transparent 3px);
+            background-size: 24px 12px;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .subhead {
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: #bcb0da;
+            max-width: 700px;
+            margin: 1.5rem auto 0;
+            background: rgba(20, 10, 30, 0.5);
+            backdrop-filter: blur(8px);
+            padding: 0.75rem 2rem;
+            border-radius: 60px;
+            border: 1px solid #4a2c7333;
+            box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.7);
+        }
+
+        /* card grid */
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin: 3.5rem 0 2rem;
+        }
+
+        .tool-card {
+            background: rgba(18, 14, 28, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid #3b2a55;
+            border-radius: 2.5rem 2.5rem 2rem 2rem;
+            padding: 2rem 1.8rem 1.8rem 1.8rem;
+            box-shadow: 0 25px 40px -15px #000000dd, 0 0 0 1px #6236b31a inset;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-card:hover {
+            border-color: #aa7eff;
+            box-shadow: 0 30px 50px -20px #b47aff, 0 0 0 1.5px #b47aff66 inset;
+            transform: translateY(-6px);
+            background: rgba(22, 16, 34, 0.8);
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(circle at 30% 70%, #c7a6ff10 1px, transparent 1px),
+                              radial-gradient(circle at 70% 20%, #b27aff15 1.5px, transparent 1.5px);
+            background-size: 36px 36px, 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1.8rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .card-header i {
+            font-size: 2.5rem;
+            color: #e1ceff;
+            filter: drop-shadow(0 0 6px #b372ff);
+            background: linear-gradient(145deg, #b37aff, #8f4aff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card-header h2 {
+            font-size: 2rem;
+            font-weight: 600;
+            background: linear-gradient(145deg, #f0eaff, #dbbdff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .tool-body {
+            position: relative;
+            z-index: 2;
+            flex: 1;
+        }
+
+        /* graph specific styles */
+        .graph-container {
+            background: #1a1430;
+            border-radius: 40px;
+            padding: 1.5rem;
+            border: 1px solid #624b8b;
+            box-shadow: 0 10px 0 #2c1f41, inset 0 1px 4px #bba6ff55;
+            margin-bottom: 1rem;
+        }
+
+        .canvas-container {
+            width: 100%;
+            height: 300px;
+            background: #0f0b1a;
+            border-radius: 30px;
+            border: 1px solid #5c3f8c;
+            padding: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 20px;
+        }
+
+        .function-input {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .function-input input {
+            flex: 1;
+            background: #0f0b1a;
+            border: 1px solid #5c3f8c;
+            border-radius: 60px;
+            padding: 1rem 1.5rem;
+            color: #f2eaff;
+            font-family: 'Space Grotesk', monospace;
+            font-size: 1.1rem;
+        }
+
+        .function-input input:focus {
+            outline: none;
+            border-color: #b47aff;
+        }
+
+        .function-presets {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .preset-btn {
+            background: #2d2347;
+            border: 1px solid #5c3f8c;
+            border-radius: 40px;
+            padding: 0.5rem 1.2rem;
+            color: #dac5ff;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            font-size: 0.9rem;
+        }
+
+        .preset-btn:hover {
+            background: #382b57;
+            border-color: #b47aff;
+        }
+
+        .preset-btn.active {
+            background: #9f5eff;
+            color: #0f0b1a;
+            border-color: #dbbaff;
+        }
+
+        .range-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .range-item {
+            background: #0f0b1a;
+            border-radius: 30px;
+            padding: 0.8rem 1.2rem;
+            border: 1px solid #5c3f8c;
+        }
+
+        .range-item label {
+            display: block;
+            color: #b097e6;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
+        }
+
+        .range-item input {
+            width: 100%;
+            background: #2d2347;
+            border: 1px solid #7b5eb0;
+            border-radius: 30px;
+            padding: 0.5rem 1rem;
+            color: #f2eaff;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            background: #0f0b1a;
+            border-radius: 30px;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid #5c3f8c;
+        }
+
+        .stat-label {
+            color: #b097e6;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #b47aff;
+        }
+
+        .control-btn {
+            background: #2d2347;
+            border: none;
+            border-radius: 40px;
+            padding: 0.8rem 2rem;
+            color: #e6d0ff;
+            border: 1px solid #7b5eb0;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #1a122e;
+            transition: all 0.1s ease;
+            font-size: 1rem;
+        }
+
+        .control-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        .control-btn:hover {
+            background: #382b57;
+        }
+
+        .points-list {
+            background: #0f0b1a;
+            border-radius: 30px;
+            padding: 1rem;
+            margin-top: 1rem;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .point-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            border-bottom: 1px solid #2d2347;
+            color: #dac5ff;
+        }
+
+        .point-item:last-child {
+            border-bottom: none;
+        }
+
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+
+        .footer-note {
+            margin-top: 4rem;
+            text-align: center;
+            color: #62558b;
+            font-weight: 400;
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+            backdrop-filter: blur(2px);
+            padding: 1.5rem 0.5rem 0.2rem;
+            border-top: 1px dashed #6d4d9a55;
+        }
+
+        @media (max-width: 600px) {
+            .tool-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .range-controls { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- hero -->
+        <div class="hero">
+            <h1>VIRO GRAPH <span>📈</span></h1>
+            <div class="halftone-underline"></div>
+            <div class="subhead">
+                <i class="fas fa-chart-line" style="margin-right: 8px;"></i> 
+                function graphing · derivatives · integrals · statistics
+            </div>
+        </div>
+
+        <!-- main graphing card -->
+        <div class="tool-grid">
+            <div class="tool-card" style="grid-column: 1 / -1;">
+                <div class="card-header">
+                    <i class="fas fa-chart-line"></i>
+                    <h2>function plotter</h2>
+                </div>
+                <div class="tool-body">
+                    <div class="graph-container">
+                        <!-- graph canvas -->
+                        <div class="canvas-container">
+                            <canvas id="functionGraph"></canvas>
+                        </div>
+
+                        <!-- function input -->
+                        <div class="function-input">
+                            <input type="text" id="functionInput" value="sin(x)" placeholder="f(x) = ... (e.g., sin(x), x^2, 2*x+1, exp(-x))">
+                            <button class="control-btn" id="plotBtn"><i class="fas fa-chart-line"></i> plot</button>
+                        </div>
+
+                        <!-- function presets -->
+                        <div class="function-presets">
+                            <button class="preset-btn active" data-func="sin(x)">sin(x)</button>
+                            <button class="preset-btn" data-func="cos(x)">cos(x)</button>
+                            <button class="preset-btn" data-func="x^2">x²</button>
+                            <button class="preset-btn" data-func="sqrt(x)">√x</button>
+                            <button class="preset-btn" data-func="exp(-x)">e⁻ˣ</button>
+                            <button class="preset-btn" data-func="log(x)">ln(x)</button>
+                            <button class="preset-btn" data-func="1/x">1/x</button>
+                            <button class="preset-btn" data-func="abs(x)">|x|</button>
+                            <button class="preset-btn" data-func="x^3 - 3*x">x³ - 3x</button>
+                        </div>
+
+                        <!-- range controls -->
+                        <div class="range-controls">
+                            <div class="range-item">
+                                <label>x min</label>
+                                <input type="number" id="xMin" value="-10" step="0.5">
+                            </div>
+                            <div class="range-item">
+                                <label>x max</label>
+                                <input type="number" id="xMax" value="10" step="0.5">
+                            </div>
+                            <div class="range-item">
+                                <label>y min</label>
+                                <input type="number" id="yMin" value="-5" step="0.5">
+                            </div>
+                            <div class="range-item">
+                                <label>y max</label>
+                                <input type="number" id="yMax" value="5" step="0.5">
+                            </div>
+                            <div class="range-item">
+                                <label>samples</label>
+                                <input type="number" id="samples" value="500" min="50" max="2000" step="50">
+                            </div>
+                            <div class="range-item">
+                                <label>line width</label>
+                                <input type="number" id="lineWidth" value="2" min="1" max="5" step="0.5">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- second row: additional tools -->
+        <div class="tool-grid">
+            <!-- CARD: derivative calculator -->
+            <div class="tool-card">
+                <div class="card-header">
+                    <i class="fas fa-chart-line"></i>
+                    <h2>derivative</h2>
+                </div>
+                <div class="tool-body">
+                    <div class="graph-container">
+                        <div class="function-input" style="margin-bottom: 1rem;">
+                            <input type="text" id="derivFunction" value="x^3" placeholder="f(x)">
+                            <button class="control-btn" id="calcDeriv"><i class="fas fa-calculator"></i> derive</button>
+                        </div>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">derivative</div>
+                                <div class="stat-value" id="derivative">3x²</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">at x =</div>
+                                <input type="number" id="derivX" value="2" step="0.1" style="width: 80px; background: #2d2347; border: 1px solid #7b5eb0; border-radius: 20px; padding: 0.3rem; color: #f2eaff; text-align: center;">
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">f'(x) =</div>
+                                <div class="stat-value" id="derivValue">12</div>
+                            </div>
+                        </div>
+
+                        <div class="points-list">
+                            <div class="point-item">
+                                <span><span class="color-dot" style="background: #b47aff;"></span> power rule</span>
+                                <span>d/dx[xⁿ] = n·xⁿ⁻¹</span>
+                            </div>
+                            <div class="point-item">
+                                <span><span class="color-dot" style="background: #ff9f4a;"></span> sin(x)</span>
+                                <span>cos(x)</span>
+                            </div>
+                            <div class="point-item">
+                                <span><span class="color-dot" style="background: #4aff9e;"></span> cos(x)</span>
+                                <span>-sin(x)</span>
+                            </div>
+                            <div class="point-item">
+                                <span><span class="color-dot" style="background: #ff4a6e;"></span> eˣ</span>
+                                <span>eˣ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD: integral calculator -->
+            <div class="tool-card">
+                <div class="card-header">
+                    <i class="fas fa-chart-area"></i>
+                    <h2>integral</h2>
+                </div>
+                <div class="tool-body">
+                    <div class="graph-container">
+                        <div class="function-input" style="margin-bottom: 1rem;">
+                            <input type="text" id="integralFunction" value="x^2" placeholder="f(x)">
+                            <button class="control-btn" id="calcIntegral"><i class="fas fa-calculator"></i> integrate</button>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <div class="range-item">
+                                <label>lower limit (a)</label>
+                                <input type="number" id="integralA" value="0" step="0.1">
+                            </div>
+                            <div class="range-item">
+                                <label>upper limit (b)</label>
+                                <input type="number" id="integralB" value="3" step="0.1">
+                            </div>
+                        </div>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-card" style="grid-column: span 2;">
+                                <div class="stat-label">definite integral ∫ f(x) dx</div>
+                                <div class="stat-value" id="integralResult">9.00</div>
+                            </div>
+                        </div>
+
+                        <div class="points-list">
+                            <div class="point-item">
+                                <span><span class="color-dot" style="background: #b47aff;"></span> power rule</span>
+                                <span>∫ xⁿ dx = xⁿ⁺¹/(n+1)</span>
+                            </div>
+                            <div class="point-item">
+                                <span><span class="color-dot" style="background: #ff9f4a;"></span> sin(x)</span>
+                                <span>-cos(x)</span>
+                            </div>
+                            <div class="point-item">
+                                <span><span class="color-dot" style="background: #4aff9e;"></span> cos(x)</span>
+                                <span>sin(x)</span>
+                            </div>
+                            <div class="point-item">
+                                <span><span class="color-dot" style="background: #ff4a6e;"></span> 1/x</span>
+                                <span>ln|x|</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD: statistics & points -->
+            <div class="tool-card">
+                <div class="card-header">
+                    <i class="fas fa-table"></i>
+                    <h2>statistics</h2>
+                </div>
+                <div class="tool-body">
+                    <div class="graph-container">
+                        <div class="function-input" style="margin-bottom: 1rem;">
+                            <input type="text" id="pointsInput" value="1,2,3,4,5,6,7,8,9,10" placeholder="enter numbers (comma separated)">
+                            <button class="control-btn" id="calcStats"><i class="fas fa-calculator"></i> analyze</button>
+                        </div>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">mean</div>
+                                <div class="stat-value" id="statMean">5.5</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">median</div>
+                                <div class="stat-value" id="statMedian">5.5</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">mode</div>
+                                <div class="stat-value" id="statMode">none</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">min</div>
+                                <div class="stat-value" id="statMin">1</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">max</div>
+                                <div class="stat-value" id="statMax">10</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">range</div>
+                                <div class="stat-value" id="statRange">9</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">variance</div>
+                                <div class="stat-value" id="statVar">8.25</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">std dev</div>
+                                <div class="stat-value" id="statStd">2.87</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">sum</div>
+                                <div class="stat-value" id="statSum">55</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- footer -->
+        <div class="footer-note">
+            <i class="fas fa-chart-line"></i> VIRO GRAPH · function visualization & analysis · purple black halftone edition 
+            <span style="display: inline-block; background:#3a2b57; padding:0.2rem 0.8rem; border-radius: 40px; margin-left: 0.8rem;">v1.0</span>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ---------- FUNCTION PLOTTER ----------
+            const ctx = document.getElementById('functionGraph').getContext('2d');
+            let chart;
+            
+            // math parser helper - safely evaluate mathematical expressions
+            function evaluateFunction(expr, x) {
+                try {
+                    // replace ^ with ** for exponentiation
+                    expr = expr.replace(/\^/g, '**');
+                    
+                    // add math functions
+                    const f = new Function('x', `return ${expr}`);
+                    return f(x);
+                } catch (e) {
+                    return NaN;
+                }
+            }
+
+            function plotFunction() {
+                const expr = document.getElementById('functionInput').value;
+                const xMin = parseFloat(document.getElementById('xMin').value);
+                const xMax = parseFloat(document.getElementById('xMax').value);
+                const yMin = parseFloat(document.getElementById('yMin').value);
+                const yMax = parseFloat(document.getElementById('yMax').value);
+                const samples = parseInt(document.getElementById('samples').value);
+                const lineWidth = parseFloat(document.getElementById('lineWidth').value);
+
+                // generate points
+                const step = (xMax - xMin) / samples;
+                const points = [];
+                const labels = [];
+
+                for (let i = 0; i <= samples; i++) {
+                    const x = xMin + i * step;
+                    const y = evaluateFunction(expr, x);
+                    points.push({x, y});
+                    labels.push(x.toFixed(2));
+                }
+
+                // filter out invalid points
+                const validPoints = points.filter(p => !isNaN(p.y) && isFinite(p.y));
+
+                if (validPoints.length === 0) {
+                    alert('Invalid function expression');
+                    return;
+                }
+
+                // destroy old chart if exists
+                if (chart) {
+                    chart.destroy();
+                }
+
+                // create new chart
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: validPoints.map(p => p.x.toFixed(2)),
+                        datasets: [{
+                            label: `f(x) = ${expr}`,
+                            data: validPoints.map(p => p.y),
+                            borderColor: '#b47aff',
+                            backgroundColor: 'rgba(180, 122, 255, 0.1)',
+                            borderWidth: lineWidth,
+                            pointRadius: 0,
+                            tension: 0.1,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        scales: {
+                            x: {
+                                grid: {
+                                    color: 'rgba(180, 122, 255, 0.1)'
+                                },
+                                ticks: {
+                                    color: '#b097e6'
+                                }
+                            },
+                            y: {
+                                min: yMin,
+                                max: yMax,
+                                grid: {
+                                    color: 'rgba(180, 122, 255, 0.1)'
+                                },
+                                ticks: {
+                                    color: '#b097e6'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#f2eaff'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // update derivative at center point if derivative card exists
+                updateDerivativeDisplay();
+            }
+
+            // preset buttons
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById('functionInput').value = btn.dataset.func;
+                    plotFunction();
+                });
+            });
+
+            // plot button
+            document.getElementById('plotBtn').addEventListener('click', plotFunction);
+
+            // range inputs - auto update
+            ['xMin', 'xMax', 'yMin', 'yMax', 'samples', 'lineWidth'].forEach(id => {
+                document.getElementById(id).addEventListener('change', plotFunction);
+            });
+
+            // ---------- DERIVATIVE CALCULATOR ----------
+            function derivative(f, x, h = 1e-5) {
+                return (f(x + h) - f(x - h)) / (2 * h);
+            }
+
+            function updateDerivativeDisplay() {
+                const expr = document.getElementById('derivFunction').value;
+                const x = parseFloat(document.getElementById('derivX').value) || 0;
+                
+                try {
+                    const f = (x) => evaluateFunction(expr, x);
+                    const deriv = derivative(f, x);
+                    
+                    // simple symbolic derivative hints (just for display)
+                    let derivStr = '';
+                    if (expr.includes('^')) {
+                        const parts = expr.split('^');
+                        if (parts.length === 2 && !isNaN(parseFloat(parts[0]))) {
+                            const n = parseFloat(parts[1]);
+                            derivStr = `${n}·x^${n-1}`;
+                        } else {
+                            derivStr = 'numerical derivative';
+                        }
+                    } else if (expr === 'sin(x)') derivStr = 'cos(x)';
+                    else if (expr === 'cos(x)') derivStr = '-sin(x)';
+                    else if (expr === 'exp(x)' || expr === 'e^x') derivStr = 'e^x';
+                    else if (expr === 'log(x)' || expr === 'ln(x)') derivStr = '1/x';
+                    else if (expr === 'x^2') derivStr = '2x';
+                    else if (expr === 'x^3') derivStr = '3x²';
+                    else derivStr = 'numerical';
+                    
+                    document.getElementById('derivative').innerHTML = derivStr;
+                    document.getElementById('derivValue').innerHTML = deriv.toFixed(4);
+                } catch (e) {
+                    document.getElementById('derivative').innerHTML = 'error';
+                    document.getElementById('derivValue').innerHTML = '?';
+                }
+            }
+
+            document.getElementById('calcDeriv').addEventListener('click', updateDerivativeDisplay);
+            document.getElementById('derivX').addEventListener('change', updateDerivativeDisplay);
+            document.getElementById('derivFunction').addEventListener('change', updateDerivativeDisplay);
+
+            // ---------- INTEGRAL CALCULATOR ----------
+            function integral(f, a, b, n = 1000) {
+                const h = (b - a) / n;
+                let sum = 0;
+                for (let i = 0; i < n; i++) {
+                    const x1 = a + i * h;
+                    const x2 = a + (i + 1) * h;
+                    sum += (f(x1) + f(x2)) * h / 2; // trapezoidal rule
+                }
+                return sum;
+            }
+
+            function updateIntegral() {
+                const expr = document.getElementById('integralFunction').value;
+                const a = parseFloat(document.getElementById('integralA').value) || 0;
+                const b = parseFloat(document.getElementById('integralB').value) || 1;
+                
+                try {
+                    const f = (x) => evaluateFunction(expr, x);
+                    const result = integral(f, a, b);
+                    document.getElementById('integralResult').innerHTML = result.toFixed(4);
+                } catch (e) {
+                    document.getElementById('integralResult').innerHTML = 'error';
+                }
+            }
+
+            document.getElementById('calcIntegral').addEventListener('click', updateIntegral);
+            ['integralA', 'integralB', 'integralFunction'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('change', updateIntegral);
+            });
+
+            // ---------- STATISTICS CALCULATOR ----------
+            function calculateStats() {
+                const input = document.getElementById('pointsInput').value;
+                const numbers = input.split(',')
+                    .map(n => parseFloat(n.trim()))
+                    .filter(n => !isNaN(n));
+                
+                if (numbers.length === 0) return;
+                
+                numbers.sort((a, b) => a - b);
+                
+                // mean
+                const sum = numbers.reduce((a, b) => a + b, 0);
+                const mean = sum / numbers.length;
+                
+                // median
+                const mid = Math.floor(numbers.length / 2);
+                const median = numbers.length % 2 === 0 
+                    ? (numbers[mid - 1] + numbers[mid]) / 2 
+                    : numbers[mid];
+                
+                // mode
+                const freq = {};
+                let maxFreq = 0;
+                let modes = [];
+                numbers.forEach(n => {
+                    freq[n] = (freq[n] || 0) + 1;
+                    if (freq[n] > maxFreq) maxFreq = freq[n];
+                });
+                
+                if (maxFreq > 1) {
+                    modes = Object.keys(freq).filter(k => freq[k] === maxFreq).map(Number);
+                }
+                
+                // variance and std dev
+                const squaredDiffs = numbers.map(n => Math.pow(n - mean, 2));
+                const variance = squaredDiffs.reduce((a, b) => a + b, 0) / numbers.length;
+                const stdDev = Math.sqrt(variance);
+                
+                // min, max, range
+                const min = numbers[0];
+                const max = numbers[numbers.length - 1];
+                const range = max - min;
+                
+                // update display
+                document.getElementById('statMean').innerHTML = mean.toFixed(2);
+                document.getElementById('statMedian').innerHTML = median.toFixed(2);
+                document.getElementById('statMode').innerHTML = modes.length ? modes.join(', ') : 'none';
+                document.getElementById('statMin').innerHTML = min;
+                document.getElementById('statMax').innerHTML = max;
+                document.getElementById('statRange').innerHTML = range.toFixed(2);
+                document.getElementById('statVar').innerHTML = variance.toFixed(2);
+                document.getElementById('statStd').innerHTML = stdDev.toFixed(2);
+                document.getElementById('statSum').innerHTML = sum;
+            }
+
+            document.getElementById('calcStats').addEventListener('click', calculateStats);
+            document.getElementById('pointsInput').addEventListener('change', calculateStats);
+
+            // initial plot
+            plotFunction();
+            updateDerivativeDisplay();
+            updateIntegral();
+            calculateStats();
+        })();
+    </script>
+</body>
+</html>
